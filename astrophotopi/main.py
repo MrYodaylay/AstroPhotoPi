@@ -1,19 +1,39 @@
 import asyncio
-from pathlib import Path
+import threading
+import time
+
 from hypercorn.asyncio import serve
 from hypercorn.config import Config
 
-from applications import Asgi
-from camera import Camera
+from astrophotopi import AstroPhotoPi
+from astrophotopi import ASGIApplication
 
-config = Config()
-config.bind = ["0.0.0.0:8080"]
 
-app = Asgi()
-app.camera = Camera()
+def server_thread():
 
-base_directory = Path(__file__).parent.parent
-static_directory = base_directory.joinpath("webapp")
-app.static_directory = str(static_directory)
+    # Set up asyncio loop
+    loop = asyncio.new_event_loop()
 
-asyncio.run(serve(app, config))
+    # Create hypercorn coroutine
+    asgi = ASGIApplication()
+    config = Config()
+    config.bind = ["0.0.0.0:8080"]
+    server = serve(asgi, config)
+
+    loop.create_task(server)
+
+    loop.run_forever()
+
+def main():
+
+    thread = threading.Thread(target=server_thread)
+    thread.start()
+
+    print("Main continues")
+    time.sleep(5)
+    print("Exiting")
+
+
+if __name__ == "__main__":
+    main()
+
