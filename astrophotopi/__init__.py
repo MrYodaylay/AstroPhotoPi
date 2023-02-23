@@ -1,1 +1,1 @@
-from .httpinterface import CustomHTTPServer
+from .httpinterface import CustomHTTPServer, CustomHTTPRequestHandler
