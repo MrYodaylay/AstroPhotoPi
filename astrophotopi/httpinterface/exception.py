@@ -1,0 +1,3 @@
+class HeadersFinishedException(Exception):
+    pass
+

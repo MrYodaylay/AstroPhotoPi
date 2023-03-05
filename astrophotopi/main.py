@@ -1,7 +1,7 @@
 import logging
 import time
 
-from astrophotopi import CustomHTTPServer, CustomHTTPRequestHandler
+from astrophotopi.httpinterface import CustomHTTPServer
 
 
 def main():

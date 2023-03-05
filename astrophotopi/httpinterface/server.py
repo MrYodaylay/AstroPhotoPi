@@ -1,46 +1,39 @@
 import logging
-from typing import Dict, Tuple, Any, Optional, Callable, BinaryIO
-from dataclasses import dataclass
+from typing import Dict, Tuple, Optional, Callable
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-
-@dataclass
-class HTTPRequest:
-    path: str
-
-
-@dataclass
-class HTTPResponse:
-    _response_code: Callable[[int, str], Any]
-    _response_headers: Callable[[str, str], Any]
-    _response_body: BinaryIO
-
-    def send_response(self, code: int, message: str):
-        self._response_code(code, message)
-
-    def send_headers(self, keyword: str, value: str):
-        self._response_headers(keyword, value)
-
-    def send_body(self, body: bytes):
-        self._response_body.write(body)
+from astrophotopi.httpinterface.object import HTTPRequest, HTTPResponse
+from astrophotopi.httpinterface.routes import route_index
 
 
 class CustomHTTPRequestHandler(BaseHTTPRequestHandler):
-    routes: Dict[Tuple[str, str], Any] = {}
+    routes: Dict[Tuple[str, str], Callable] = {
+        ("/", "GET"): route_index
+    }
 
     def do_GET(self):
         route_descriptor = (self.path, "GET")
+        self.do_ALL(route_descriptor)
+    def do_POST(self):
+        route_descriptor = (self.path, "POST")
+        self.do_ALL(route_descriptor)
+
+    def do_ALL(self, route_descriptor: Tuple[str, str]):
         request = HTTPRequest(self.path)
         response = HTTPResponse(self.send_response, self.send_header, self.wfile)
 
         if route_descriptor in self.routes:
-            self.routes[route_descriptor](self)
+            self.routes[route_descriptor](request, response)
             self.send_response(200, "OK")
             self.wfile.write(b"")
         else:
             self.send_error(404)
             self.end_headers()
+
+    def register_route(self, path: str, method: str, func: Callable):
+        route_descriptor = (self.path, method.upper())
+        self.routes[route_descriptor] = func
 
 
 class CustomHTTPServer:
@@ -59,7 +52,7 @@ class CustomHTTPServer:
 
     def _serve_forever(self):
         addr, port = self.server_object.server_address
-        logging.info(f"Listening at http://{addr}:{port}/")
+        logging.info(f"Listening at httpinterface://{addr}:{port}/")
 
         self.server_object.serve_forever()
 
